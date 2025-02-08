@@ -292,17 +292,6 @@ M.parse_curl_args = function(provider, prompt_opts)
     end
     headers["Authorization"] = "Bearer " .. api_key
   end
-  local headers = {
-    ["Content-Type"] = "application/json",
-  }
-
-  if P.env.require_api_key(base) then
-    local api_key = provider.parse_api_key()
-    if api_key == nil then
-      error(Config.provider .. " API key is not set, please set it in your environment variable or config file")
-    end
-    headers["Authorization"] = "Bearer " .. api_key
-  end
 
   if M.is_openrouter(base.endpoint) then
     headers["HTTP-Referer"] = "https://github.com/yetone/avante.nvim"

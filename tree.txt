@@ -1,0 +1,69 @@
+.
+├── autoload
+│   └── avante.vim
+├── Build.ps1
+├── build.sh
+├── Cargo.lock
+├── Cargo.toml
+├── crates
+│   ├── avante-html2md
+│   │   ├── Cargo.toml
+│   │   └── src
+│   ├── avante-repo-map
+│   │   ├── Cargo.toml
+│   │   ├── queries
+│   │   └── src
+│   ├── avante-templates
+│   │   ├── Cargo.toml
+│   │   └── src
+│   └── avante-tokenizers
+│       ├── Cargo.lock
+│       ├── Cargo.toml
+│       ├── README.md
+│       └── src
+├── LICENSE
+├── lua
+│   ├── avante
+│   │   ├── api.lua
+│   │   ├── clipboard.lua
+│   │   ├── config.lua
+│   │   ├── diff.lua
+│   │   ├── file_selector.lua
+│   │   ├── health.lua
+│   │   ├── highlights.lua
+│   │   ├── html2md.lua
+│   │   ├── init.lua
+│   │   ├── llm.lua
+│   │   ├── llm_tools.lua
+│   │   ├── path.lua
+│   │   ├── prompt_input.lua
+│   │   ├── providers
+│   │   ├── range.lua
+│   │   ├── repo_map.lua
+│   │   ├── selection.lua
+│   │   ├── selection_result.lua
+│   │   ├── sidebar.lua
+│   │   ├── suggestion.lua
+│   │   ├── templates
+│   │   ├── tokenizers.lua
+│   │   ├── types.lua
+│   │   └── utils
+│   ├── avante_lib.lua
+│   └── cmp_avante
+│       ├── commands.lua
+│       └── mentions.lua
+├── Makefile
+├── plugin
+│   └── avante.lua
+├── README.md
+├── stylua.toml
+├── syntax
+│   └── jinja.vim
+├── tests
+│   ├── llm_tools_spec.lua
+│   └── utils
+│       ├── file_spec.lua
+│       └── init_spec.lua
+└── tree.txt
+
+21 directories, 45 files

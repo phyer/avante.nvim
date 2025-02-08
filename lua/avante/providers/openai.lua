@@ -282,6 +282,20 @@ M.parse_curl_args = function(provider, prompt_opts)
     ["Content-Type"] = "application/json",
   }
 
+  -- Add appid header if configured
+  if base.bce_appid then headers["appid"] = base.bce_appid end
+
+  if P.env.require_api_key(base) then
+    local api_key = provider.parse_api_key()
+    if api_key == nil then
+      error(Config.provider .. " API key is not set, please set it in your environment variable or config file")
+    end
+    headers["Authorization"] = "Bearer " .. api_key
+  end
+  local headers = {
+    ["Content-Type"] = "application/json",
+  }
+
   if P.env.require_api_key(base) then
     local api_key = provider.parse_api_key()
     if api_key == nil then

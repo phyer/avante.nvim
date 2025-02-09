@@ -39,6 +39,8 @@ M.parse_response = function(ctx, data_stream, _, opts)
   end
 end
 
+local Log = require("avante.utils.log")
+
 M.parse_curl_args = function(provider, prompt_opts)
   local base, body_opts = P.parse_config(provider)
 
@@ -58,7 +60,7 @@ M.parse_curl_args = function(provider, prompt_opts)
     headers["Authorization"] = "Bearer " .. api_key
   end
 
-  return {
+  local request = {
     url = Utils.url_join(base.endpoint, "/chat/completions"),
     proxy = base.proxy,
     insecure = base.allow_insecure,
@@ -70,6 +72,11 @@ M.parse_curl_args = function(provider, prompt_opts)
       enable_citation = base.enable_citation,
     }, body_opts),
   }
+
+  -- Log the request details
+  Log.log_request(request.url, request.headers, request.body)
+
+  return request
 end
 
 return M

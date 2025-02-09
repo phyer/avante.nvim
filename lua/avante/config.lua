@@ -130,6 +130,13 @@ M._defaults = {
     temperature = 0,
     max_tokens = 4096,
   },
+  baidu = {
+    endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/",
+    model = "deepseek-v3",
+    timeout = 30000, -- Timeout in milliseconds
+    temperature = 0,
+    max_tokens = 4096,
+  },
   ---To add support for custom provider, follow the format below
   ---See https://github.com/yetone/avante.nvim/wiki#custom-providers for more details
   ---@type {[string]: AvanteProvider}

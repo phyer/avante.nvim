@@ -10,7 +10,7 @@ local M = {}
 ---@class avante.Config
 M._defaults = {
   debug = false,
-  ---@alias Provider "claude" | "openai" | "azure" | "gemini" | "vertex" | "cohere" | "copilot" | "baidu" | string
+  ---@alias Provider "claude" | "openai" | "azure" | "gemini" | "vertex" | "cohere" | "copilot" | string
   provider = "claude", -- Only recommend using Claude
   -- WARNING: Since auto-suggestions are a high-frequency operation and therefore expensive,
   -- currently designating it as `copilot` provider is dangerous because: https://github.com/yetone/avante.nvim/issues/1048
@@ -130,28 +130,10 @@ M._defaults = {
     temperature = 0,
     max_tokens = 4096,
   },
-  baidu = {
-    endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/",
-    model = "deepseek-v3",
-    timeout = 30000, -- Timeout in milliseconds
-    temperature = 0,
-    max_tokens = 4096,
-  },
   ---To add support for custom provider, follow the format below
   ---See https://github.com/yetone/avante.nvim/wiki#custom-providers for more details
   ---@type {[string]: AvanteProvider}
   vendors = {
-    ---@type AvanteSupportedProvider
-    ["baidu"] = {
-      endpoint = "https://qianfan.baidubce.com/v2",
-      model = "deepseek-v3",
-      timeout = 30000,
-      temperature = 0,
-      max_tokens = 4096,
-      appid = "", -- Required for baidu provider
-      disable_search = false,
-      enable_citation = false,
-    },
     ---@type AvanteSupportedProvider
     ["claude-haiku"] = {
       __inherited_from = "claude",

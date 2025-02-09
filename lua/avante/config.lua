@@ -135,6 +135,17 @@ M._defaults = {
   ---@type {[string]: AvanteProvider}
   vendors = {
     ---@type AvanteSupportedProvider
+    ["baidu"] = {
+      endpoint = "https://qianfan.baidubce.com/v2",
+      model = "deepseek-v3",
+      timeout = 30000,
+      temperature = 0,
+      max_tokens = 4096,
+      appid = "", -- Required for baidu provider
+      disable_search = false,
+      enable_citation = false,
+    },
+    ---@type AvanteSupportedProvider
     ["claude-haiku"] = {
       __inherited_from = "claude",
       model = "claude-3-5-haiku-20241022",

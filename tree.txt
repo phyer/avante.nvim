@@ -3,7 +3,7 @@
 │   └── avante.vim
 ├── Build.ps1
 ├── build.sh
-├── Cargo.lock
+├─ ─ Cargo.lock
 ├── Cargo.toml
 ├── crates
 │   ├── avante-html2md

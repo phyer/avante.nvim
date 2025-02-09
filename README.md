@@ -1,9 +1,3 @@
-forked
-
-## 变更:
-支持config里加入 bce_appid字段, 用于支持百度云千帆大模型服务, 它需要提供一个appid, 除了已有的api_key以外
-
----------
 <div align="center">
   <img alt="logo" width="120" src="https://github.com/user-attachments/assets/2e2f2a58-2b28-4d11-afd1-87b65612b2de" />
   <h1>avante.nvim</h1>

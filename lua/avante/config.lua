@@ -424,7 +424,6 @@ M.BASE_PROVIDER_KEYS = {
   "proxy",
   "allow_insecure",
   "api_key_name",
-  "bce_appid",
   "timeout",
   -- internal
   "local",

@@ -1,3 +1,4 @@
+-- FILEPATH: avante.nvim/lua/avante/providers/baidu.lua
 local Utils = require("avante.utils")
 local Config = require("avante.config")
 local P = require("avante.providers")
@@ -44,12 +45,12 @@ local Log = require("avante.utils.log")
 M.parse_curl_args = function(provider, prompt_opts)
   local base, body_opts = P.parse_config(provider)
 
-  -- Validate required appid
+  -- 验证 appid 是否存在
   if not base.appid or base.appid == "" then error("Baidu provider requires appid to be set in config") end
 
   local headers = {
     ["Content-Type"] = "application/json",
-    ["appid"] = base.appid,
+    ["appid"] = base.appid, -- 将 appid 加入请求头
   }
 
   if P.env.require_api_key(base) then
@@ -73,7 +74,7 @@ M.parse_curl_args = function(provider, prompt_opts)
     }, body_opts),
   }
 
-  -- Log the request details
+  -- 记录请求详细信息
   Log.log_request(request.url, request.headers, request.body)
 
   return request

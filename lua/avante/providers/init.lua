@@ -136,6 +136,8 @@ local DressingState = { winid = nil, input_winid = nil, input_bufnr = nil }
 ---@field gemini AvanteProviderFunctor
 ---@field cohere AvanteProviderFunctor
 ---@field bedrock AvanteBedrockProviderFunctor
+---@field baidu AvanteProviderFunctor -- 新增百度 provider
+
 local M = {}
 
 ---@class EnvironmentHandler

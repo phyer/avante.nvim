@@ -10,7 +10,7 @@ local M = {}
 ---@class avante.Config
 M._defaults = {
   debug = false,
-  ---@alias Provider "claude" | "openai" | "azure" | "gemini" | "vertex" | "cohere" | "copilot" | "baidu" | "ollama" | string
+  ---@alias Provider "claude" | "openai" | "azure" | "gemini" | "vertex" | "cohere" | "copilot" | string
   provider = "claude", -- Only recommend using Claude
   -- WARNING: Since auto-suggestions are a high-frequency operation and therefore expensive,
   -- currently designating it as `copilot` provider is dangerous because: https://github.com/yetone/avante.nvim/issues/1048
@@ -130,17 +130,6 @@ M._defaults = {
     temperature = 0,
     max_tokens = 4096,
   },
-  ---@type AvanteSupportedProvider
-  baidu = {
-    endpoint = "https://your-baidu-endpoint.com",
-    model = "deepseek-v3",
-    appid = "your-appid", -- 假设需要 appid
-    api_key_name = "BAIDU_API_KEY",
-    auto_suggestion_provider = "baidu", -- 根据实际情况设置
-    timeout = 30000, -- Timeout in milliseconds
-    temperature = 0,
-    max_tokens = 4096,
-  },
   ---To add support for custom provider, follow the format below
   ---See https://github.com/yetone/avante.nvim/wiki#custom-providers for more details
   ---@type {[string]: AvanteProvider}
@@ -157,14 +146,6 @@ M._defaults = {
     ["claude-opus"] = {
       __inherited_from = "claude",
       model = "claude-3-opus-20240229",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 8000,
-    },
-    ---@type AvanteSupportedProvider
-    ["ollama"] = {
-      __inherited_from = "openai",
-      model = "myDeepseek7b",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 8000,

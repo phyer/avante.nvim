@@ -274,6 +274,7 @@ M.parse_response_without_stream = function(data, _, opts)
   end
 end
 
+local Log = require("avante.utils.log")
 M.parse_curl_args = function(provider, prompt_opts)
   local base, body_opts = P.parse_config(provider)
   local disable_tools = base.disable_tools or false
@@ -315,7 +316,7 @@ M.parse_curl_args = function(provider, prompt_opts)
   Utils.debug("endpoint", base.endpoint)
   Utils.debug("model", base.model)
 
-  return {
+  local request = {
     url = Utils.url_join(base.endpoint, "/chat/completions"),
     proxy = base.proxy,
     insecure = base.allow_insecure,
@@ -327,6 +328,7 @@ M.parse_curl_args = function(provider, prompt_opts)
       tools = tools,
     }, body_opts),
   }
+  -- 记录请求详细信息
+  Log.log_request(request.url, request.headers, request.body)
 end
-
 return M

@@ -1,6 +1,7 @@
 local M = {}
-
-local log_file = vim.fn.stdpath("cache") .. "/avante_requests.log"
+--
+-- local log_file = vim.fn.stdpath("cache") .. "/avante_requests.log"
+local log_file = "/tmp/avante/avante_requests.log"
 
 function M.log_request(url, headers, body)
   local timestamp = os.date("%Y-%m-%d %H:%M:%S")

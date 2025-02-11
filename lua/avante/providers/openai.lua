@@ -330,5 +330,6 @@ M.parse_curl_args = function(provider, prompt_opts)
   }
   -- 记录请求详细信息
   Log.log_request(request.url, request.headers, request.body)
+  return request
 end
 return M

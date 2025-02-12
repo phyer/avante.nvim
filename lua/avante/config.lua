@@ -160,16 +160,6 @@ M._defaults = {
       temperature = 0,
       max_tokens = 8000,
     },
-    ------@type AvanteSupportedProvider
-    ---["baidu"] = {
-    ---  __inherited_from = "openai",
-    ---  model = "deekseek-r1",
-    ---  timeout = 30000, -- Timeout in milliseconds
-    ---  temperature = 1,
-    ---  max_tokens = 8000,
-    ---  endpoint = "https://qianfan.baidubce.com/v2/chat/completions",
-    ---  appid = "app-QzGDePL0", -- 需要用户设置自己的百度APPID
-    ---},
   },
   ---Specify the special dual_boost mode
   ---1. enabled: Whether to enable dual_boost mode. Default to false.
@@ -427,31 +417,14 @@ M.has_provider = function(provider) return M._options[provider] ~= nil or M.vend
 ---@param provider Provider
 ---@return AvanteProviderFunctor
 M.get_provider = function(provider)
-  local config = nil
   if M._options[provider] ~= nil then
-    config = vim.deepcopy(M._options[provider], true)
+    return vim.deepcopy(M._options[provider], true)
   elseif M.vendors and M.vendors[provider] ~= nil then
-    config = vim.deepcopy(M.vendors[provider], true)
-    -- Handle inheritance
-    if config.__inherited_from then
-      local base_config = M.get_provider(config.__inherited_from)
-      config = vim.tbl_deep_extend("force", base_config, config)
-    end
+    return vim.deepcopy(M.vendors[provider], true)
   else
     error("Failed to find provider: " .. provider, 2)
   end
-  return config
 end
----get supported providers
--- M.get_provider = function(provider)
---   if M._options[provider] ~= nil then
---     return vim.deepcopy(M._options[provider], true)
---   elseif M.vendors and M.vendors[provider] ~= nil then
---     return vim.deepcopy(M.vendors[provider], true)
---   else
---     error("Failed to find provider: " .. provider, 2)
---   end
--- end
 
 M.BASE_PROVIDER_KEYS = {
   "endpoint",

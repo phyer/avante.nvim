@@ -149,6 +149,7 @@ M._defaults = {
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 8000,
+      appid = "app-QzGDePL0",
     },
     ---@type AvanteSupportedProvider
     ["claude-opus"] = {

@@ -145,10 +145,11 @@ M._defaults = {
     ---@type AvanteSupportedProvider
     ["baidu"] = {
       __inherited_from = "openai",
-      model = "deekseek-v1",
+      model = "deekseek-r1",
       timeout = 30000, -- Timeout in milliseconds
       temperature = 0,
       max_tokens = 8000,
+      endpoint = "https://qianfan.baidubce.com/v2/chat/completions",
       appid = "app-QzGDePL0",
     },
     ---@type AvanteSupportedProvider

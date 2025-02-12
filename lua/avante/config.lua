@@ -142,16 +142,16 @@ M._defaults = {
       temperature = 0,
       max_tokens = 8000,
     },
-    ---@type AvanteSupportedProvider
-    ["baidu"] = {
-      __inherited_from = "openai",
-      model = "deekseek-r1",
-      timeout = 30000, -- Timeout in milliseconds
-      temperature = 0,
-      max_tokens = 8000,
-      endpoint = "https://qianfan.baidubce.com/v2/chat/completions",
-      appid = "app-QzGDePL0",
-    },
+    ------@type AvanteSupportedProvider
+    ---["baidu"] = {
+    ---  __inherited_from = "openai",
+    ---  model = "deekseek-r1",
+    ---  timeout = 30000, -- Timeout in milliseconds
+    ---  temperature = 0,
+    ---  max_tokens = 8000,
+    ---  endpoint = "https://qianfan.baidubce.com/v2/chat/completions",
+    ---  appid = "app-QzGDePL0",
+    ---},
     ---@type AvanteSupportedProvider
     ["claude-opus"] = {
       __inherited_from = "claude",

@@ -143,6 +143,14 @@ M._defaults = {
       max_tokens = 8000,
     },
     ---@type AvanteSupportedProvider
+    ["baidu"] = {
+      __inherited_from = "openai",
+      model = "deekseek-v1",
+      timeout = 30000, -- Timeout in milliseconds
+      temperature = 0,
+      max_tokens = 8000,
+    },
+    ---@type AvanteSupportedProvider
     ["claude-opus"] = {
       __inherited_from = "claude",
       model = "claude-3-opus-20240229",

@@ -194,15 +194,24 @@ M.parse_messages = function(opts)
 
   return final_messages
 end
+local path = "/tmp/avante/avante_requests.log"
+local file = io.open(path, "a")
+if not file then error("无法打开日志文件： " .. path) end
 
 M.parse_response = function(ctx, data_stream, _, opts)
+  local log_file = io.open("/tmp/avante/avante_requests.log", "a")
+  if not log_file then error("无法打开日志文件： /tmp/avante/avante_requests.log") end
+
   if data_stream:match('"%[DONE%]":') then
     opts.on_stop({ reason = "complete" })
+    log_file:write("Response completed at: " .. os.date() .. "\n")
+    log_file:close()
     return
   end
   if data_stream:match('"delta":') then
     ---@type OpenAIChatResponse
     local jsn = vim.json.decode(data_stream)
+    log_file:write("Response data: " .. data_stream .. "\n")
     if jsn.choices and jsn.choices[1] then
       local choice = jsn.choices[1]
       if choice.finish_reason == "stop" or choice.finish_reason == "eos_token" then
@@ -242,6 +251,7 @@ M.parse_response = function(ctx, data_stream, _, opts)
           tool_use.input_json = tool_use.input_json .. tool_call["function"].arguments
         end
       elseif choice.delta.content then
+        log_file:write("Content delta: " .. choice.delta.content .. "\n")
         if
           ctx.returned_think_start_tag ~= nil and (ctx.returned_think_end_tag == nil or not ctx.returned_think_end_tag)
         then
@@ -263,8 +273,13 @@ M.parse_response = function(ctx, data_stream, _, opts)
 end
 
 M.parse_response_without_stream = function(data, _, opts)
+  local log_file = io.open("/tmp/avante/avante_requests.log", "a")
+  if not log_file then error("无法打开日志文件： /tmp/avante/avante_requests.log") end
+
   ---@type OpenAIChatResponse
   local json = vim.json.decode(data)
+  log_file:write("Non-stream response: " .. data .. "\n")
+  log_file:close()
   if json.choices and json.choices[1] then
     local choice = json.choices[1]
     if choice.message and choice.message.content then

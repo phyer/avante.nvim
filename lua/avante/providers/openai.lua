@@ -285,7 +285,7 @@ M.parse_curl_args = function(provider, prompt_opts)
 
   -- Add appid header for baidu provider
   if Config.provider == "baidu" then
-    local baidu_config = Config.get_provider("baidu") or {}
+    local baidu_config = Config.get_provider("baidu")
     if not baidu_config.appid or baidu_config.appid == "" then
       error("Baidu provider requires 'appid' to be set in config")
     end

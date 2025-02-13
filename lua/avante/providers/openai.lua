@@ -199,8 +199,8 @@ local file = io.open(path, "a")
 if not file then error("无法打开日志文件： " .. path) end
 
 M.parse_response = function(ctx, data_stream, _, opts)
-  local log_file = io.open("/tmp/avante/avante_requests.log", "a")
-  if not log_file then error("无法打开日志文件： /tmp/avante/avante_requests.log") end
+  local log_file = io.open("/tmp/avante/avante_response.log", "a")
+  if not log_file then error("无法打开日志文件： /tmp/avante/avante_response.log") end
 
   if data_stream:match('"%[DONE%]":') then
     opts.on_stop({ reason = "complete" })

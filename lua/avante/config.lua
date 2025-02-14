@@ -256,8 +256,12 @@ M._defaults = {
     files = {
       add_current = "<leader>ac", -- Add current buffer to selected files
     },
+    providers = {
+      show = "<leader>ap", -- Show providers selector
+    },
   },
   windows = {
+
     ---@alias AvantePosition "right" | "left" | "top" | "bottom" | "smart"
     position = "right",
     wrap = true, -- similar to vim.o.wrap

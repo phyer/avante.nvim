@@ -68,6 +68,11 @@ H.keymaps = function()
   vim.keymap.set("n", "<Plug>(AvanteToggleHint)", function() M.toggle.hint() end)
   vim.keymap.set("n", "<Plug>(AvanteToggleSuggestion)", function() M.toggle.suggestion() end)
 
+  vim.keymap.set("n", "<Plug>(AvanteShowProviders)", function()
+    local sidebar = M.get()
+    if sidebar then sidebar:show_providers_selector() end
+  end)
+
   vim.keymap.set({ "n", "v" }, "<Plug>(AvanteConflictOurs)", function() Diff.choose("ours") end)
   vim.keymap.set({ "n", "v" }, "<Plug>(AvanteConflictBoth)", function() Diff.choose("both") end)
   vim.keymap.set({ "n", "v" }, "<Plug>(AvanteConflictTheirs)", function() Diff.choose("theirs") end)
@@ -121,6 +126,14 @@ H.keymaps = function()
       function() M.toggle.suggestion() end,
       { desc = "avante: toggle suggestion" }
     )
+    Utils.safe_keymap_set("n", Config.mappings.show_providers, function()
+      local sidebar = M.get()
+      if sidebar then sidebar:show_providers_selector() end
+    end, {
+      desc = "avante: show providers selector",
+      noremap = true,
+      silent = true,
+    })
     Utils.safe_keymap_set("n", Config.mappings.toggle.repomap, function() require("avante.repo_map").show() end, {
       desc = "avante: display repo map",
       noremap = true,

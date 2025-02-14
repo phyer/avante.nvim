@@ -257,7 +257,7 @@ M._defaults = {
       add_current = "<leader>ac", -- Add current buffer to selected files
     },
     providers = {
-      show = "<leader>ap", -- Show providers selector
+      show_provides = "<leader>ap", -- Show providers selector
     },
   },
   windows = {

@@ -1017,6 +1017,76 @@ function Sidebar:on_mount(opts)
     })
   end
 
+  -- Add keymap to add current buffer while sidebar is open
+  if Config.mappings.providers and Config.mappings.providers.show_providers then
+    vim.keymap.set("n", Config.mappings.providers.show_providers, function()
+      local providers = require("avante.providers")
+      local current_provider = Config.provider
+
+      -- Create a new buffer
+      local bufnr = api.nvim_create_buf(false, true)
+
+      -- Set buffer content
+      local lines = {}
+      for provider, _ in pairs(providers) do
+        if provider == current_provider then
+          table.insert(lines, "> " .. provider .. " <")
+        else
+          table.insert(lines, "  " .. provider)
+        end
+      end
+      api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+      -- Create a floating window
+      local width = 40
+      local height = #lines
+      local win_opts = {
+        relative = "editor",
+        width = width,
+        height = height,
+        col = (vim.o.columns - width) / 2,
+        row = (vim.o.lines - height) / 2 - 1,
+        style = "minimal",
+        border = "rounded",
+      }
+
+      local winid = api.nvim_open_win(bufnr, true, win_opts)
+
+      -- Highlight current provider
+      api.nvim_buf_add_highlight(bufnr, -1, "AvanteProviderCurrent", 0, 0, -1)
+
+      -- Key mappings
+      local function move_selection(direction)
+        local cursor = api.nvim_win_get_cursor(winid)
+        local line = cursor[1]
+
+        if direction == "up" and line > 1 then
+          api.nvim_win_set_cursor(winid, { line - 1, 0 })
+        elseif direction == "down" and line < #lines then
+          api.nvim_win_set_cursor(winid, { line + 1, 0 })
+        end
+      end
+
+      local function select_provider()
+        local cursor = api.nvim_win_get_cursor(winid)
+        local line = cursor[1]
+        local selected_provider = lines[line]:match("%S+$")
+
+        if selected_provider and selected_provider ~= current_provider then providers.refresh(selected_provider) end
+
+        api.nvim_win_close(winid, true)
+      end
+
+      vim.keymap.set("n", "<Up>", function() move_selection("up") end, { buffer = bufnr })
+      vim.keymap.set("n", "<Down>", function() move_selection("down") end, { buffer = bufnr })
+      vim.keymap.set("n", "<CR>", select_provider, { buffer = bufnr })
+      vim.keymap.set("n", "q", function() api.nvim_win_close(winid, true) end, { buffer = bufnr })
+    end, {
+      desc = "avante: show providers selector",
+      noremap = true,
+      silent = true,
+    })
+  end
   api.nvim_set_option_value("wrap", Config.windows.wrap, { win = self.result_container.winid })
 
   local current_apply_extmark_id = nil

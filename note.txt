@@ -1,0 +1,22 @@
+Failed to run `config` for avante.nvim
+
+...share/nvim/lazy/lazy.nvim/lua/lazy/core/handler/keys.lua:35: attempt to index local 'ret' (a nil value)
+
+# stacktrace:
+  - /lazy.nvim/lua/lazy/core/util.lua:123 _in_ **__index**
+  - /lazy.nvim/lua/lazy/core/handler/keys.lua:35 _in_ **parse**
+  - /lazy.nvim/lua/lazy/core/handler/keys.lua:63 _in_ **have**
+  - /avante.nvim/lua/avante/utils/init.lua:163 _in_ **func**
+  - vim/shared.lua:274 _in_ **tbl_filter**
+  - /avante.nvim/lua/avante/utils/init.lua:163 _in_ **safe_keymap_set**
+  - /avante.nvim/lua/avante/init.lua:129 _in_ **keymaps**
+  - /avante.nvim/lua/avante/init.lua:386 _in_ **setup**
+  - /lazy.nvim/lua/lazy/core/loader.lua:387
+  - /lazy.nvim/lua/lazy/core/util.lua:135 _in_ **try**
+  - /lazy.nvim/lua/lazy/core/loader.lua:395 _in_ **config**
+  - /lazy.nvim/lua/lazy/core/loader.lua:362 _in_ **_load**
+  - /lazy.nvim/lua/lazy/core/loader.lua:197 _in_ **load**
+  - /lazy.nvim/lua/lazy/core/loader.lua:127 _in_ **startup**
+  - /lazy.nvim/lua/lazy/init.lua:112 _in_ **setup**
+  - ~/.config/nvim/lua/config/lazy.lua:17
+  - ~/.config/nvim/init.lua:2

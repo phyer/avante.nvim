@@ -71,7 +71,7 @@ H.keymaps = function()
   vim.keymap.set("n", "<Plug>(AvanteShowProviders)", function()
     local sidebar = M.get()
     if sidebar then sidebar:show_providers_selector() end
-  end)
+  end, { noremap = true, silent = true })
 
   vim.keymap.set({ "n", "v" }, "<Plug>(AvanteConflictOurs)", function() Diff.choose("ours") end)
   vim.keymap.set({ "n", "v" }, "<Plug>(AvanteConflictBoth)", function() Diff.choose("both") end)

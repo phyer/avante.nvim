@@ -140,7 +140,8 @@ function M.get(opts)
   ret = ret ~= "" and ret or vim.uv.cwd()
   print("Final Root:", ret)
 
-  return Utils.is_win() and ret:gsub("/", "\\") or ret
+  --- return Utils.is_win() and ret:gsub("/", "\\") or ret
+  return  ret
 end
 
 function M.git()

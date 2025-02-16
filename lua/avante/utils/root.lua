@@ -81,12 +81,10 @@ function M.detect(opts)
   opts.spec = opts.spec or type(vim.g.root_spec) == "table" and vim.g.root_spec or M.spec
   opts.buf = (opts.buf == nil or opts.buf == 0) and vim.api.nvim_get_current_buf() or opts.buf
 
-  print("Detection Specs:", vim.inspect(opts.spec))
 
   local ret = {} ---@type AvanteRoot[]
   for _, spec in ipairs(opts.spec) do
     local paths = M.resolve(spec)(opts.buf)
-    print("Paths for Spec:", spec, vim.inspect(paths))
 
     paths = paths or {}
     paths = type(paths) == "table" and paths or { paths }
@@ -101,7 +99,6 @@ function M.detect(opts)
       if opts.all == false then break end
     end
   end
-  print("Detected Roots:", vim.inspect(ret))
   return ret
 end
 
@@ -119,18 +116,12 @@ M.cache = {}
 function M.get(opts)
   opts = opts or {}
   local buf = opts.buf or vim.api.nvim_get_current_buf()
-  print("Current Buffer:", buf)
 
   local ret = M.cache[buf]
-  print("Cached Root:", ret)
 
   if not ret then
     local roots = M.detect({ all = false, buf = buf })
-    print("Detected Roots:", vim.inspect(roots))
-
     ret = roots[1] and roots[1].paths[1] or vim.uv.cwd()
-    print("Selected Root:", ret)
-
     M.cache[buf] = ret
   end
 
@@ -138,7 +129,6 @@ function M.get(opts)
 
   -- Ensure a non-empty return value
   ret = ret ~= "" and ret or vim.uv.cwd()
-  print("Final Root:", ret)
 
   --- return Utils.is_win() and ret:gsub("/", "\\") or ret
   return  ret

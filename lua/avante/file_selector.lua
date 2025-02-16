@@ -58,7 +58,6 @@ end
 
 local function get_project_filepaths()
   local project_root = Utils.get_project_root()
-  print("project_root:", project_root)
   local files = Utils.scan_directory_respect_gitignore({ directory = project_root, add_dirs = true })
   files = vim.iter(files):map(function(filepath) return Path:new(filepath):make_relative(project_root) end):totable()
 

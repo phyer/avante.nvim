@@ -120,6 +120,8 @@ function M.get(opts)
     M.cache[buf] = ret
   end
   if opts and opts.normalize then return ret end
+  -- Ensure a non-empty return value
+  ret = ret ~= "" and ret or vim.uv.cwd()
   return Utils.is_win() and ret:gsub("/", "\\") or ret
 end
 

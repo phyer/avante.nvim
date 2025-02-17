@@ -57,6 +57,7 @@ function Sidebar:new(id)
     selected_files_container = nil,
     input_container = nil,
     file_selector = FileSelector:new(id),
+    is_generating = false,
   }, { __index = self })
 end
 
@@ -66,9 +67,24 @@ function Sidebar:delete_autocmds()
 end
 
 function Sidebar:reset()
+  -- clean up event handlers
+  if self.augroup then
+    api.nvim_del_augroup_by_id(self.augroup)
+    self.augroup = nil
+  end
+
+  -- clean up keymaps
   self:unbind_apply_key()
   self:unbind_sidebar_keys()
-  self:delete_autocmds()
+
+  -- clean up file selector events
+  if self.file_selector then self.file_selector:off("update") end
+
+  if self.result_container then self.result_container:unmount() end
+  if self.selected_code_container then self.selected_code_container:unmount() end
+  if self.selected_files_container then self.selected_files_container:unmount() end
+  if self.input_container then self.input_container:unmount() end
+
   self.code = { bufnr = 0, winid = 0, selection = nil }
   self.winids =
     { result_container = 0, selected_files_container = 0, selected_code_container = 0, input_container = 0 }
@@ -200,24 +216,34 @@ local function transform_result_content(selected_files, result_content, prev_fil
   local current_filepath
 
   local i = 1
-  while i <= #result_lines do
+  while true do
+    if i > #result_lines then break end
     local line_content = result_lines[i]
-    if line_content:match("<FILEPATH>.+</FILEPATH>") then
-      local filepath = line_content:match("<FILEPATH>(.+)</FILEPATH>")
+    if line_content:match("<[Ff][Ii][Ll][Ee][Pp][Aa][Tt][Hh]>.+</[Ff][Ii][Ll][Ee][Pp][Aa][Tt][Hh]>") then
+      local filepath = line_content:match("<[Ff][Ii][Ll][Ee][Pp][Aa][Tt][Hh]>(.+)</[Ff][Ii][Ll][Ee][Pp][Aa][Tt][Hh]>")
       if filepath then
         current_filepath = filepath
         table.insert(transformed_lines, string.format("Filepath: %s", filepath))
         goto continue
       end
     end
-    if line_content == "<SEARCH>" then
+    if line_content:match("^%s*<[Ss][Ee][Aa][Rr][Cc][Hh]>") then
       is_searching = true
+
+      if not line_content:match("^%s*<[Ss][Ee][Aa][Rr][Cc][Hh]>%s*$") then
+        local search_start_line = line_content:match("<[Ss][Ee][Aa][Rr][Cc][Hh]>(.+)$")
+        line_content = "<SEARCH>"
+        result_lines[i] = line_content
+        if search_start_line and search_start_line ~= "" then table.insert(result_lines, i + 1, search_start_line) end
+      end
+      line_content = "<SEARCH>"
+
       local prev_line = result_lines[i - 1]
       if
         prev_line
         and prev_filepath
         and not prev_line:match("Filepath:.+")
-        and not prev_line:match("<FILEPATH>.+</FILEPATH>")
+        and not prev_line:match("<[Ff][Ii][Ll][Ee][Pp][Aa][Tt][Hh]>.+</[Ff][Ii][Ll][Ee][Pp][Aa][Tt][Hh]>")
       then
         table.insert(transformed_lines, string.format("Filepath: %s", prev_filepath))
       end
@@ -225,7 +251,23 @@ local function transform_result_content(selected_files, result_content, prev_fil
       if next_line and next_line:match("^%s*```%w+$") then i = i + 1 end
       search_start = i + 1
       last_search_tag_start_line = i
-    elseif line_content == "</SEARCH>" then
+    elseif line_content:match("</[Ss][Ee][Aa][Rr][Cc][Hh]>%s*$") then
+      if is_replacing then
+        result_lines[i] = line_content:gsub("</[Ss][Ee][Aa][Rr][Cc][Hh]>", "</REPLACE>")
+        goto continue_without_increment
+      end
+
+      -- Handle case where </SEARCH> is a suffix
+      if not line_content:match("^%s*</[Ss][Ee][Aa][Rr][Cc][Hh]>%s*$") then
+        local search_end_line = line_content:match("^(.+)</[Ss][Ee][Aa][Rr][Cc][Hh]>")
+        line_content = "</SEARCH>"
+        result_lines[i] = line_content
+        if search_end_line and search_end_line ~= "" then
+          table.insert(result_lines, i, search_end_line)
+          goto continue_without_increment
+        end
+      end
+
       is_searching = false
 
       local search_end = i
@@ -248,24 +290,28 @@ local function transform_result_content(selected_files, result_content, prev_fil
 
       if not the_matched_file then
         if not PPath:new(filepath):exists() then
-          Utils.warn("File not found: " .. filepath)
-          goto continue
+          the_matched_file = {
+            filepath = filepath,
+            content = "",
+            file_type = nil,
+          }
+        else
+          if not PPath:new(filepath):is_file() then
+            Utils.warn("Not a file: " .. filepath)
+            goto continue
+          end
+          local lines = Utils.read_file_from_buf_or_disk(filepath)
+          if lines == nil then
+            Utils.warn("Failed to read file: " .. filepath)
+            goto continue
+          end
+          local content = table.concat(lines, "\n")
+          the_matched_file = {
+            filepath = filepath,
+            content = content,
+            file_type = nil,
+          }
         end
-        if not PPath:new(filepath):is_file() then
-          Utils.warn("Not a file: " .. filepath)
-          goto continue
-        end
-        local lines = Utils.read_file_from_buf_or_disk(filepath)
-        if lines == nil then
-          Utils.warn("Failed to read file: " .. filepath)
-          goto continue
-        end
-        local content = table.concat(lines, "\n")
-        the_matched_file = {
-          filepath = filepath,
-          content = content,
-          file_type = nil,
-        }
       end
 
       local file_content = vim.split(the_matched_file.content, "\n")
@@ -292,8 +338,7 @@ local function transform_result_content(selected_files, result_content, prev_fil
       -- can happen if the llm tries to edit or create a file outside of it's context.
       if not match_filetype then
         local snippet_file_path = current_filepath or prev_filepath
-        local snippet_file_type = vim.filetype.match({ filename = snippet_file_path }) or "unknown"
-        match_filetype = snippet_file_type
+        match_filetype = Utils.get_filetype(snippet_file_path)
       end
 
       local search_start_tag_idx_in_transformed_lines = 0
@@ -311,13 +356,31 @@ local function transform_result_content(selected_files, result_content, prev_fil
         string.format("```%s", match_filetype),
       })
       goto continue
-    elseif line_content == "<REPLACE>" then
+    elseif line_content:match("^%s*<[Rr][Ee][Pp][Ll][Aa][Cc][Ee]>") then
       is_replacing = true
+      if not line_content:match("^%s*<[Rr][Ee][Pp][Ll][Aa][Cc][Ee]>%s*$") then
+        local replace_first_line = line_content:match("<[Rr][Ee][Pp][Ll][Aa][Cc][Ee]>(.+)$")
+        line_content = "<REPLACE>"
+        result_lines[i] = line_content
+        if replace_first_line and replace_first_line ~= "" then
+          table.insert(result_lines, i + 1, replace_first_line)
+        end
+      end
       local next_line = result_lines[i + 1]
       if next_line and next_line:match("^%s*```%w+$") then i = i + 1 end
       last_replace_tag_start_line = i
       goto continue
-    elseif line_content == "</REPLACE>" then
+    elseif line_content:match("</[Rr][Ee][Pp][Ll][Aa][Cc][Ee]>%s*$") then
+      -- Handle case where </REPLACE> is a suffix
+      if not line_content:match("^%s*</[Rr][Ee][Pp][Ll][Aa][Cc][Ee]>%s*$") then
+        local replace_end_line = line_content:match("^(.+)</[Rr][Ee][Pp][Ll][Aa][Cc][Ee]>")
+        line_content = "</REPLACE>"
+        result_lines[i] = line_content
+        if replace_end_line and replace_end_line ~= "" then
+          table.insert(result_lines, i, replace_end_line)
+          goto continue_without_increment
+        end
+      end
       is_replacing = false
       local prev_line = result_lines[i - 1]
       if not (prev_line and prev_line:match("^%s*```$")) then table.insert(transformed_lines, "```") end
@@ -332,6 +395,7 @@ local function transform_result_content(selected_files, result_content, prev_fil
     table.insert(transformed_lines, line_content)
     ::continue::
     i = i + 1
+    ::continue_without_increment::
   end
 
   return {
@@ -397,8 +461,8 @@ local function get_searching_hint()
 end
 
 local thinking_spinner_chars = {
-  "🤯",
-  "🙄",
+  Utils.icon("🤯", "?"),
+  Utils.icon("🙄", "¿"),
 }
 local thinking_spinner_index = 1
 
@@ -437,8 +501,10 @@ local function generate_display_content(replacement)
         return string.format("  > %s", line)
       end)
       :totable()
-    local result_lines =
-      vim.list_extend(vim.list_slice(lines, 1, replacement.last_search_tag_start_line), { "🤔 Thought content:" })
+    local result_lines = vim.list_extend(
+      vim.list_slice(lines, 1, replacement.last_search_tag_start_line),
+      { Utils.icon("🤔 ") .. "Thought content:" }
+    )
     result_lines = vim.list_extend(result_lines, formatted_thinking_content_lines)
     result_lines = vim.list_extend(result_lines, vim.list_slice(lines, last_think_tag_end_line + 1))
     return table.concat(result_lines, "\n")
@@ -695,28 +761,22 @@ local function minimize_snippet(original_lines, snippet)
   return new_snippets
 end
 
----@param snippets_map table<string, AvanteCodeSnippet[]>
+---@param filepath string
+---@param snippets AvanteCodeSnippet[]
 ---@return table<string, AvanteCodeSnippet[]>
-function Sidebar:minimize_snippets(snippets_map)
+function Sidebar:minimize_snippets(filepath, snippets)
   local original_lines = {}
 
-  if vim.tbl_count(snippets_map) > 0 then
-    local filepaths = vim.tbl_keys(snippets_map)
-    local original_lines_, _, err = Utils.read_file_from_buf_or_disk(filepaths[1])
-    if err ~= nil then return {} end
-    if original_lines_ then original_lines = original_lines_ end
-  end
+  local original_lines_ = Utils.read_file_from_buf_or_disk(filepath)
+  if original_lines_ then original_lines = original_lines_ end
 
   local results = {}
 
-  for filepath, snippets in pairs(snippets_map) do
-    for _, snippet in ipairs(snippets) do
-      local new_snippets = minimize_snippet(original_lines, snippet)
-      if new_snippets then
-        results[filepath] = results[filepath] or {}
-        for _, new_snippet in ipairs(new_snippets) do
-          table.insert(results[filepath], new_snippet)
-        end
+  for _, snippet in ipairs(snippets) do
+    local new_snippets = minimize_snippet(original_lines, snippet)
+    if new_snippets then
+      for _, new_snippet in ipairs(new_snippets) do
+        table.insert(results, new_snippet)
       end
     end
   end
@@ -749,12 +809,13 @@ function Sidebar:apply(current_cursor)
     selected_snippets_map = all_snippets_map
   end
 
-  if Config.behaviour.minimize_diff then selected_snippets_map = self:minimize_snippets(selected_snippets_map) end
-
   vim.defer_fn(function()
     api.nvim_set_current_win(self.code.winid)
     for filepath, snippets in pairs(selected_snippets_map) do
+      if Config.behaviour.minimize_diff then snippets = self:minimize_snippets(filepath, snippets) end
       local bufnr = Utils.get_or_create_buffer_with_filepath(filepath)
+      local path_ = PPath:new(filepath)
+      path_:parent():mkdir({ parents = true, exists_ok = true })
       insert_conflict_contents(bufnr, snippets)
       local process = function(winid)
         api.nvim_set_current_win(winid)
@@ -845,7 +906,7 @@ function Sidebar:render_result()
   then
     return
   end
-  local header_text = "󰭻 Avante"
+  local header_text = Utils.icon("󰭻 ") .. "Avante"
   self:render_header(
     self.result_container.winid,
     self.result_container.bufnr,
@@ -867,13 +928,15 @@ function Sidebar:render_input(ask)
   end
 
   local header_text = string.format(
-    "󱜸 %s (" .. Config.mappings.sidebar.switch_windows .. ": switch focus)",
+    "%s%s (" .. Config.mappings.sidebar.switch_windows .. ": switch focus)",
+    Utils.icon("󱜸 "),
     ask and "Ask" or "Chat with"
   )
 
   if self.code.selection ~= nil then
     header_text = string.format(
-      "󱜸 %s (%d:%d) (<Tab>: switch focus)",
+      "%s%s (%d:%d) (<Tab>: switch focus)",
+      Utils.icon("󱜸 "),
       ask and "Ask" or "Chat with",
       self.code.selection.range.start.lnum,
       self.code.selection.range.finish.lnum
@@ -906,7 +969,8 @@ function Sidebar:render_selected_code()
     selected_code_lines_count = #selected_code_lines
   end
 
-  local header_text = " Selected Code"
+  local header_text = Utils.icon(" ")
+    .. "Selected Code"
     .. (
       selected_code_lines_count > selected_code_max_lines_count
         and " (Show only the first " .. tostring(selected_code_max_lines_count) .. " lines)"
@@ -1310,6 +1374,20 @@ function Sidebar:initialize()
   self.file_selector:add_selected_file(file_path)
 
   return self
+end
+
+function Sidebar:is_focused()
+  if not self:is_open() then return false end
+
+  local current_winid = api.nvim_get_current_win()
+  if self.winids.result_container and self.winids.result_container == current_winid then return true end
+  if self.winids.selected_files_container and self.winids.selected_files_container == current_winid then
+    return true
+  end
+  if self.winids.selected_code_container and self.winids.selected_code_container == current_winid then return true end
+  if self.winids.input_container and self.winids.input_container == current_winid then return true end
+
+  return false
 end
 
 function Sidebar:is_focused_on_result()
@@ -1892,6 +1970,8 @@ function Sidebar:create_input_container(opts)
 
     ---@type AvanteLLMChunkCallback
     local on_chunk = function(chunk)
+      self.is_generating = true
+
       original_response = original_response .. chunk
 
       local selected_files = self.file_selector:get_selected_files_contents()
@@ -1926,6 +2006,8 @@ function Sidebar:create_input_container(opts)
 
     ---@type AvanteLLMStopCallback
     local on_stop = function(stop_opts)
+      self.is_generating = false
+
       pcall(function()
         ---remove keymaps
         vim.keymap.del("n", "j", { buffer = self.result_container.bufnr })
@@ -2039,6 +2121,7 @@ function Sidebar:create_input_container(opts)
     local request = table.concat(lines, "\n")
     if request == "" then return end
     api.nvim_buf_set_lines(self.input_container.bufnr, 0, -1, false, {})
+    api.nvim_win_set_cursor(self.input_container.winid, { 1, 0 })
     handle_submit(request)
   end
 
@@ -2454,7 +2537,7 @@ function Sidebar:create_selected_files_container()
     self:render_header(
       self.selected_files_container.winid,
       selected_files_buf,
-      " Selected Files",
+      Utils.icon(" ") .. "Selected Files",
       Highlights.SUBTITLE,
       Highlights.REVERSED_SUBTITLE
     )

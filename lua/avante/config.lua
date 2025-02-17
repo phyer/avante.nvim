@@ -5,6 +5,11 @@
 
 local Utils = require("avante.utils")
 
+---@class avante.file_selector.IParams
+---@field public title      string
+---@field public filepaths  string[]
+---@field public handler    fun(filepaths: string[]|nil): nil
+
 ---@class avante.CoreConfig: avante.Config
 local M = {}
 ---@class avante.Config
@@ -28,11 +33,10 @@ M._defaults = {
       tavily = {
         api_key_name = "TAVILY_API_KEY",
         extra_request_body = {
-          time_range = "d",
           include_answer = "basic",
         },
         ---@type WebSearchEngineProviderResponseBodyFormatter
-        format_response_body = function(body) return body.anwser, nil end,
+        format_response_body = function(body) return body.answer, nil end,
       },
       serpapi = {
         api_key_name = "SERPAPI_API_KEY",
@@ -52,11 +56,65 @@ M._defaults = {
                     title = result.title,
                     link = result.link,
                     snippet = result.snippet,
+                    date = result.date,
                   }
                 end
               )
+              :take(10)
               :totable()
-            if #jsn > 5 then jsn = vim.list_slice(jsn, 1, 5) end
+            return vim.json.encode(jsn), nil
+          end
+          return "", nil
+        end,
+      },
+      searchapi = {
+        api_key_name = "SEARCHAPI_API_KEY",
+        extra_request_body = {
+          engine = "google",
+        },
+        ---@type WebSearchEngineProviderResponseBodyFormatter
+        format_response_body = function(body)
+          if body.answer_box ~= nil then return body.answer_box.result, nil end
+          if body.organic_results ~= nil then
+            local jsn = vim
+              .iter(body.organic_results)
+              :map(
+                function(result)
+                  return {
+                    title = result.title,
+                    link = result.link,
+                    snippet = result.snippet,
+                    date = result.date,
+                  }
+                end
+              )
+              :take(10)
+              :totable()
+            return vim.json.encode(jsn), nil
+          end
+          return "", nil
+        end,
+      },
+      google = {
+        api_key_name = "GOOGLE_SEARCH_API_KEY",
+        engine_id_name = "GOOGLE_SEARCH_ENGINE_ID",
+        extra_request_body = {},
+        ---@type WebSearchEngineProviderResponseBodyFormatter
+        format_response_body = function(body)
+          if body.items ~= nil then
+            local jsn = vim
+              .iter(body.items)
+              :map(
+                function(result)
+                  return {
+                    title = result.title,
+                    link = result.link,
+                    snippet = result.snippet,
+                  }
+                end
+              )
+              :take(10)
+              :totable()
             return vim.json.encode(jsn), nil
           end
           return "", nil
@@ -307,7 +365,7 @@ M._defaults = {
   },
   --- @class AvanteFileSelectorConfig
   file_selector = {
-    --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string
+    --- @alias FileSelectorProvider "native" | "fzf" | "mini.pick" | "snacks" | "telescope" | string | fun(params: avante.file_selector.IParams|nil): nil
     provider = "native",
     -- Options override for custom providers
     provider_opts = {},

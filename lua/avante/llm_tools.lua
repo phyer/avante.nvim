@@ -7,6 +7,7 @@ local M = {}
 ---@param rel_path string
 ---@return string
 local function get_abs_path(rel_path)
+  if Path:new(rel_path):is_absolute() then return rel_path end
   local project_root = Utils.get_project_root()
   return Path:new(project_root):joinpath(rel_path):absolute()
 end
@@ -41,13 +42,12 @@ function M.list_files(opts, on_log)
     add_dirs = true,
     depth = opts.depth,
   })
-  local result = ""
+  local filepaths = {}
   for _, file in ipairs(files) do
     local uniform_path = Utils.uniform_path(file)
-    result = result .. uniform_path .. "\n"
+    table.insert(filepaths, uniform_path)
   end
-  result = result:gsub("\n$", "")
-  return result, nil
+  return vim.json.encode(filepaths), nil
 end
 
 ---@param opts { rel_path: string, keyword: string }
@@ -62,12 +62,11 @@ function M.search_files(opts, on_log)
   local files = Utils.scan_directory_respect_gitignore({
     directory = abs_path,
   })
-  local result = ""
+  local filepaths = {}
   for _, file in ipairs(files) do
-    if file:find(opts.keyword) then result = result .. file .. "\n" end
+    if file:find(opts.keyword) then table.insert(filepaths, file) end
   end
-  result = result:gsub("\n$", "")
-  return result, nil
+  return vim.json.encode(filepaths), nil
 end
 
 ---@param opts { rel_path: string, keyword: string }
@@ -104,7 +103,9 @@ function M.search(opts, on_log)
   if on_log then on_log("Running command: " .. cmd) end
   local result = vim.fn.system(cmd)
 
-  return result or "", nil
+  local filepaths = vim.split(result, "\n")
+
+  return vim.json.encode(filepaths), nil
 end
 
 ---@param opts { rel_path: string }
@@ -183,9 +184,10 @@ function M.rename_file(opts, on_log)
 end
 
 ---@param opts { rel_path: string, new_rel_path: string }
+---@param on_log? fun(log: string): nil
 ---@return boolean success
 ---@return string|nil error
-function M.copy_file(opts)
+function M.copy_file(opts, on_log)
   local abs_path = get_abs_path(opts.rel_path)
   if not has_permission_to_access(abs_path) then return false, "No permission to access path: " .. abs_path end
   if not Path:new(abs_path):exists() then return false, "File not found: " .. abs_path end
@@ -193,38 +195,47 @@ function M.copy_file(opts)
   local new_abs_path = get_abs_path(opts.new_rel_path)
   if not has_permission_to_access(new_abs_path) then return false, "No permission to access path: " .. new_abs_path end
   if Path:new(new_abs_path):exists() then return false, "File already exists: " .. new_abs_path end
+  if on_log then on_log("Copying file: " .. abs_path .. " to " .. new_abs_path) end
   Path:new(new_abs_path):write(Path:new(abs_path):read())
   return true, nil
 end
 
 ---@param opts { rel_path: string }
+---@param on_log? fun(log: string): nil
 ---@return boolean success
 ---@return string|nil error
-function M.delete_file(opts)
+function M.delete_file(opts, on_log)
   local abs_path = get_abs_path(opts.rel_path)
   if not has_permission_to_access(abs_path) then return false, "No permission to access path: " .. abs_path end
   if not Path:new(abs_path):exists() then return false, "File not found: " .. abs_path end
   if not Path:new(abs_path):is_file() then return false, "Path is not a file: " .. abs_path end
   if not M.confirm("Are you sure you want to delete the file: " .. abs_path) then return false, "User canceled" end
+  if on_log then on_log("Deleting file: " .. abs_path) end
   os.remove(abs_path)
   return true, nil
 end
 
 ---@param opts { rel_path: string }
+---@param on_log? fun(log: string): nil
 ---@return boolean success
 ---@return string|nil error
-function M.create_dir(opts)
+function M.create_dir(opts, on_log)
   local abs_path = get_abs_path(opts.rel_path)
   if not has_permission_to_access(abs_path) then return false, "No permission to access path: " .. abs_path end
   if Path:new(abs_path):exists() then return false, "Directory already exists: " .. abs_path end
+  if not M.confirm("Are you sure you want to create the directory: " .. abs_path) then
+    return false, "User canceled"
+  end
+  if on_log then on_log("Creating directory: " .. abs_path) end
   Path:new(abs_path):mkdir({ parents = true })
   return true, nil
 end
 
 ---@param opts { rel_path: string, new_rel_path: string }
+---@param on_log? fun(log: string): nil
 ---@return boolean success
 ---@return string|nil error
-function M.rename_dir(opts)
+function M.rename_dir(opts, on_log)
   local abs_path = get_abs_path(opts.rel_path)
   if not has_permission_to_access(abs_path) then return false, "No permission to access path: " .. abs_path end
   if not Path:new(abs_path):exists() then return false, "Directory not found: " .. abs_path end
@@ -235,14 +246,16 @@ function M.rename_dir(opts)
   if not M.confirm("Are you sure you want to rename directory " .. abs_path .. " to " .. new_abs_path .. "?") then
     return false, "User canceled"
   end
+  if on_log then on_log("Renaming directory: " .. abs_path .. " to " .. new_abs_path) end
   os.rename(abs_path, new_abs_path)
   return true, nil
 end
 
 ---@param opts { rel_path: string }
+---@param on_log? fun(log: string): nil
 ---@return boolean success
 ---@return string|nil error
-function M.delete_dir(opts)
+function M.delete_dir(opts, on_log)
   local abs_path = get_abs_path(opts.rel_path)
   if not has_permission_to_access(abs_path) then return false, "No permission to access path: " .. abs_path end
   if not Path:new(abs_path):exists() then return false, "Directory not found: " .. abs_path end
@@ -250,6 +263,7 @@ function M.delete_dir(opts)
   if not M.confirm("Are you sure you want to delete the directory: " .. abs_path) then
     return false, "User canceled"
   end
+  if on_log then on_log("Deleting directory: " .. abs_path) end
   os.remove(abs_path)
   return true, nil
 end
@@ -319,6 +333,45 @@ function M.web_search(opts, on_log)
       query_string = query_string .. key .. "=" .. vim.uri_encode(value) .. "&"
     end
     local resp = curl.get("https://serpapi.com/search?" .. query_string, {
+      headers = {
+        ["Content-Type"] = "application/json",
+      },
+    })
+    if resp.status ~= 200 then return nil, "Error: " .. resp.body end
+    local jsn = vim.json.decode(resp.body)
+    return search_engine.format_response_body(jsn)
+  elseif provider_type == "searchapi" then
+    local query_params = vim.tbl_deep_extend("force", {
+      api_key = api_key,
+      q = opts.query,
+    }, search_engine.extra_request_body)
+    local query_string = ""
+    for key, value in pairs(query_params) do
+      query_string = query_string .. key .. "=" .. vim.uri_encode(value) .. "&"
+    end
+    local resp = curl.get("https://searchapi.io/api/v1/search?" .. query_string, {
+      headers = {
+        ["Content-Type"] = "application/json",
+      },
+    })
+    if resp.status ~= 200 then return nil, "Error: " .. resp.body end
+    local jsn = vim.json.decode(resp.body)
+    return search_engine.format_response_body(jsn)
+  elseif provider_type == "google" then
+    local engine_id = os.getenv(search_engine.engine_id_name)
+    if engine_id == nil or engine_id == "" then
+      return nil, "Environment variable " .. search_engine.engine_id_namee .. " is not set"
+    end
+    local query_params = vim.tbl_deep_extend("force", {
+      key = api_key,
+      cx = engine_id,
+      q = opts.query,
+    }, search_engine.extra_request_body)
+    local query_string = ""
+    for key, value in pairs(query_params) do
+      query_string = query_string .. key .. "=" .. vim.uri_encode(value) .. "&"
+    end
+    local resp = curl.get("https://www.googleapis.com/customsearch/v1?" .. query_string, {
       headers = {
         ["Content-Type"] = "application/json",
       },

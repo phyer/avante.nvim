@@ -665,6 +665,19 @@ function M.scan_directory_respect_gitignore(options)
   local directory = options.directory
   local gitignore_path = directory .. "/.gitignore"
   local gitignore_patterns, gitignore_negate_patterns = M.parse_gitignore(gitignore_path)
+
+  -- Convert relative paths in gitignore to absolute paths based on project root
+  local project_root = M.get_project_root()
+  local function to_absolute_path(pattern)
+    -- Skip if already absolute path
+    if pattern:sub(1, 1) == "/" then return pattern end
+    -- Convert relative path to absolute
+    return Path:new(project_root, pattern):absolute()
+  end
+
+  gitignore_patterns = vim.tbl_map(to_absolute_path, gitignore_patterns)
+  gitignore_negate_patterns = vim.tbl_map(to_absolute_path, gitignore_negate_patterns)
+
   return M.scan_directory({
     directory = directory,
     gitignore_patterns = gitignore_patterns,
@@ -890,9 +903,19 @@ function M.is_same_file(filepath_a, filepath_b) return M.uniform_path(filepath_a
 
 function M.trim_think_content(content) return content:gsub("^<think>.-</think>", "", 1) end
 
+function M.get_filetype(filepath)
+  -- Some files are sometimes not detected correctly when buffer is not included
+  -- https://github.com/neovim/neovim/issues/27265
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  local filetype = vim.filetype.match({ filename = filepath, buf = buf }) or ""
+  vim.api.nvim_buf_delete(buf, { force = true })
+
+  return filetype
+end
+
 ---@param file_path string
 ---@return string[]|nil lines
----@return string|nil file_type
 ---@return string|nil error
 function M.read_file_from_buf_or_disk(file_path)
   --- Lookup if the file is loaded in a buffer
@@ -900,8 +923,7 @@ function M.read_file_from_buf_or_disk(file_path)
   if bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
     -- If buffer exists and is loaded, get buffer content
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    local file_type = vim.api.nvim_get_option_value("filetype", { buf = bufnr })
-    return lines, file_type, nil
+    return lines, nil
   end
 
   -- Fallback: read file from disk
@@ -909,12 +931,28 @@ function M.read_file_from_buf_or_disk(file_path)
   if file then
     local content = file:read("*all")
     file:close()
-    -- Detect the file type using the specific file's content
-    local file_type = vim.filetype.match({ filename = file_path, contents = { content } }) or "unknown"
-    return vim.split(content, "\n"), file_type, nil
+    return vim.split(content, "\n"), nil
   else
-    M.error("failed to open file: " .. file_path .. " with error: " .. open_err)
-    return {}, nil, open_err
+    -- M.error("failed to open file: " .. file_path .. " with error: " .. open_err)
+    return {}, open_err
+  end
+end
+
+---Check if an icon plugin is installed
+---@return boolean
+M.icons_enabled = function() return M.has("nvim-web-devicons") or M.has("mini.icons") or M.has("mini.nvim") end
+
+---Display an string with icon, if an icon plugin is available.
+---Dev icons are an optional install for avante, this function prevents ugly chars
+---being displayed by displaying fallback options or nothing at all.
+---@param string_with_icon string
+---@param utf8_fallback string|nil
+---@return string
+M.icon = function(string_with_icon, utf8_fallback)
+  if M.icons_enabled() then
+    return string_with_icon
+  else
+    return utf8_fallback or ""
   end
 end
 

@@ -330,6 +330,11 @@ function FileSelector:show_select_ui()
       self:snacks_picker_ui(handler)
     elseif Config.file_selector.provider == "telescope" then
       self:telescope_ui(handler)
+    elseif type(Config.file_selector.provider) == "function" then
+      local title = string.format("%s:", PROMPT_TITLE) ---@type string
+      local filepaths = self:get_filepaths() ---@type string[]
+      local params = { title = title, filepaths = filepaths, handler = handler } ---@type avante.file_selector.IParams
+      Config.file_selector.provider(params)
     else
       Utils.error("Unknown file selector provider: " .. Config.file_selector.provider)
     end
@@ -363,9 +368,9 @@ end
 function FileSelector:get_selected_files_contents()
   local contents = {}
   for _, file_path in ipairs(self.selected_filepaths) do
-    local lines, filetype, error = Utils.read_file_from_buf_or_disk(file_path)
+    local lines, error = Utils.read_file_from_buf_or_disk(file_path)
     lines = lines or {}
-    filetype = filetype or "unknown"
+    local filetype = Utils.get_filetype(file_path)
     if error ~= nil then
       Utils.error("error reading file: " .. error)
     else
